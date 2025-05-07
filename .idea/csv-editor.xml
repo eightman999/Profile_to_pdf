@@ -10,6 +10,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\委員会プロフィール的な（回答） - フォームの回答 1.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
       </map>
     </option>
   </component>
