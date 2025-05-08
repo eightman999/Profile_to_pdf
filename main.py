@@ -1,5 +1,9 @@
 import sys
 import os
+
+# .venv内のプラグインのパスに環境変数を設定
+os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = ".venv/lib/python3.12/site-packages/PyQt5/Qt5/plugins/platforms"
+
 import csv
 import re
 import urllib.request
@@ -205,7 +209,7 @@ class MemberManagementApp(QMainWindow):
                 self.data = []
                 for row in csv_reader:
                     processed_row = {
-                        'parent_name': row.get('ご本人のお名前', ''),
+                        'parent_name': row.get('回答者のお名前', ''),
                         'child_name': row.get('お子様のお名前', ''),
                         'grade': row.get('お子様の学年', ''),
                         'child_phrase': row.get('お子様を表す四字熟語', ''),
@@ -214,7 +218,7 @@ class MemberManagementApp(QMainWindow):
                         'can_participate': row.get('委員会運営に参加可能ですか？', ''),
                         'reason': row.get('理由をお聞かせください', ''),
                         'impression': row.get('委員会への所感\nをお答えください', ''),
-                        'photo_url': row.get('お写真', '')
+                        'photo_url': row.get('お子様と回答者の写真', '')
                     }
                     self.data.append(processed_row)
 
@@ -344,13 +348,16 @@ class MemberManagementApp(QMainWindow):
             with urllib.request.urlopen(req, timeout=5) as response:
                 image_data = response.read()
 
-            # PILで画像を開き、リサイズ
-            image = Image.open(BytesIO(image_data))
-            image = image.resize((64, 64), Image.LANCZOS)
-
             # PyQt用のQPixmapに変換
             pixmap = QPixmap()
             pixmap.loadFromData(image_data)
+
+            # 画像が無効な場合の処理
+            if pixmap.isNull():
+                print(f"画像が無効です: {url}")
+                return QPixmap()  # 空の QPixmap を返す
+
+            # リサイズ
             pixmap = pixmap.scaled(64, 64, Qt.KeepAspectRatio, Qt.SmoothTransformation)
 
             # キャッシュに保存
@@ -359,7 +366,7 @@ class MemberManagementApp(QMainWindow):
             return pixmap
         except Exception as e:
             print(f"画像読み込みエラー: {str(e)}")
-            return QPixmap()
+            return QPixmap()  # 空の QPixmap を返す
 
     def update_table(self):
         self.table.setRowCount(0)  # テーブルをクリア
