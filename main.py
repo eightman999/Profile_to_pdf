@@ -689,8 +689,7 @@ class MemberManagementApp(QMainWindow):
             except Exception as e:
                 print(f"画像ダウンロードエラー ({item['photo_url']}): {e}")
                 # エラーが発生した場合は画像なしで続行
-                img = None
-
+                img = None#????????
         # プロフィールカードの作成
         if img:
             # 画像とテキストを組み合わせる
