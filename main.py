@@ -597,125 +597,7 @@ class MemberManagementApp(QMainWindow):
 
         self.details_area.setVisible(True)
 
-    def generate_profile_pdf(self, output_file, grade, items):
-        """プロフィール形式のPDFを生成する（日本語フォント対応）"""
-        # PDF作成準備
-        doc = SimpleDocTemplate(
-            output_file,
-            pagesize=A4,
-            leftMargin=10 * mm,
-            rightMargin=10 * mm,
-            topMargin=10 * mm,
-            bottomMargin=10 * mm
-        )
 
-        # スタイル定義
-        styles = getSampleStyleSheet()
-
-        # 日本語フォントを使用したスタイル
-        # 'JapaneseFont'が登録されていれば使用、なければ代替フォント
-        font_name = 'JapaneseFont' if 'JapaneseFont' in pdfmetrics.getRegisteredFontNames() else 'Helvetica'
-
-        japanese_style = ParagraphStyle(
-            'JapaneseStyle',
-            parent=styles['Normal'],
-            fontName=font_name,
-            fontSize=10,
-            leading=12,
-            wordWrap='CJK'
-        )
-
-        japanese_heading = ParagraphStyle(
-            'JapaneseHeading',
-            parent=styles['Heading1'],
-            fontName=font_name,
-            fontSize=14,
-            leading=16,
-            wordWrap='CJK'
-        )
-
-        # 内容作成
-        elements = []
-
-        # タイトル
-        title = Paragraph(f"{grade} プロフィール一覧", japanese_heading)
-        elements.append(title)
-        elements.append(Spacer(1, 10 * mm))
-
-        # 以下、既存のコードと同じ...
-
-        # 1ページに6名分(3列×2行)表示するためのレイアウト
-        rows = []
-        current_row = []
-
-        # 一時ファイルのリスト（後で削除するため）
-        temp_files = []
-
-        # メンバーごとにプロフィールカードを作成
-        for i, item in enumerate(items):
-            try:
-                # プロフィールカードを作成（画像あり）
-                profile_card, tmp_file = self.create_improved_profile_card(item, japanese_style)
-                if tmp_file:
-                    temp_files.append(tmp_file)
-
-                # 3列のレイアウト
-                current_row.append(profile_card)
-                if len(current_row) == 3:
-                    rows.append(current_row)
-                    current_row = []
-
-                # 2行で新しいページ
-                if len(rows) == 2 and current_row == []:
-                    # テーブルでレイアウト
-                    profile_table = Table(rows, colWidths=[6 * cm, 6 * cm, 6 * cm])
-                    profile_table.setStyle(TableStyle([
-                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                        ('TOPPADDING', (0, 0), (-1, -1), 5),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-                    ]))
-
-                    elements.append(profile_table)
-                    elements.append(Spacer(1, 5 * mm))
-
-                    # ページを分ける
-                    elements.append(Paragraph("", styles['Normal']))
-                    elements.append(Spacer(1, 10 * mm))
-
-                    rows = []
-            except Exception as e:
-                print(f"プロフィールカード作成エラー: {e}")
-                # エラーの場合はその会員をスキップ
-                continue
-
-        # 残りのアイテムを処理
-        if current_row:
-            # 3列になるまで空のセルで埋める
-            while len(current_row) < 3:
-                current_row.append("")
-            rows.append(current_row)
-
-        if rows:
-            profile_table = Table(rows, colWidths=[6 * cm, 6 * cm, 6 * cm])
-            profile_table.setStyle(TableStyle([
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('TOPPADDING', (0, 0), (-1, -1), 5),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-            ]))
-
-            elements.append(profile_table)
-
-        try:
-            # PDFを保存
-            doc.build(elements)
-        finally:
-            # 一時ファイルの削除
-            for tmp_file in temp_files:
-                try:
-                    if os.path.exists(tmp_file):
-                        os.unlink(tmp_file)
-                except Exception as e:
-                    print(f"一時ファイル削除エラー: {e}")
 
     def convert_google_drive_url(self, url):
         """GoogleドライブのURLを直接アクセス可能なURLに変換する（最新版）"""
@@ -966,8 +848,144 @@ class MemberManagementApp(QMainWindow):
             self.statusBar().showMessage(f"画像読み込みエラー: {url}")
             return QPixmap()  # 空の QPixmap を返す
 
-    def create_improved_profile_card(self, item, style):
-        """一人分のプロフィールカードを作成（複数のアクセス方法を試す）"""
+
+    def generate_profile_pdf(self, output_file, grade, items):
+        """プロフィール形式のPDFを生成する（日本語フォント対応、A4ページを2列×2行に分割）"""
+        # PDF作成準備
+        doc = SimpleDocTemplate(
+            output_file,
+            pagesize=A4,
+            leftMargin=15 * mm,
+            rightMargin=15 * mm,
+            topMargin=15 * mm,
+            bottomMargin=15 * mm
+        )
+
+        # スタイル定義
+        styles = getSampleStyleSheet()
+
+        # 日本語フォントを使用したスタイル
+        # 'JapaneseFont'が登録されていれば使用、なければ代替フォント
+        font_name = 'JapaneseFont' if 'JapaneseFont' in pdfmetrics.getRegisteredFontNames() else 'Helvetica'
+
+        japanese_style = ParagraphStyle(
+            'JapaneseStyle',
+            parent=styles['Normal'],
+            fontName=font_name,
+            fontSize=9,
+            leading=12,
+            wordWrap='CJK'
+        )
+
+        japanese_heading = ParagraphStyle(
+            'JapaneseHeading',
+            parent=styles['Heading1'],
+            fontName=font_name,
+            fontSize=14,
+            leading=16,
+            wordWrap='CJK'
+        )
+
+        # 内容作成
+        elements = []
+
+        # タイトル
+        title = Paragraph(f"{grade} プロフィール一覧", japanese_heading)
+        elements.append(title)
+        elements.append(Spacer(1, 10 * mm))
+
+        # A4ページを2列×2行に分割するレイアウト
+        # 2列用に固定サイズの枠を定義
+        fixed_card_width = 80 * mm  # 固定幅（2列なので大きくできる）
+        fixed_card_height = 120 * mm  # 固定高さ
+
+        # テーブルレイアウト用の配列
+        rows = []
+        current_row = []
+
+        # 一時ファイルのリスト（後で削除するため）
+        temp_files = []
+
+        # メンバーごとにプロフィールカードを作成
+        for i, item in enumerate(items):
+            try:
+                # プロフィールカードを作成（固定サイズで）
+                profile_card, tmp_file = self.create_fixed_size_profile_card(item, japanese_style, fixed_card_width, fixed_card_height)
+                if tmp_file:
+                    temp_files.append(tmp_file)
+
+                # 2列のレイアウト
+                current_row.append(profile_card)
+                if len(current_row) == 2:  # 2列に変更
+                    rows.append(current_row)
+                    current_row = []
+
+                # 2行で新しいページ
+                if len(rows) == 2 and current_row == []:
+                    # テーブルでレイアウト（固定サイズ）
+                    profile_table = Table(rows, colWidths=[fixed_card_width] * 2, rowHeights=[fixed_card_height] * 2)
+                    profile_table.setStyle(TableStyle([
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('TOPPADDING', (0, 0), (-1, -1), 5),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                    ]))
+
+                    elements.append(profile_table)
+                    elements.append(Spacer(1, 5 * mm))
+
+                    # ページを分ける
+                    elements.append(Paragraph("", styles['Normal']))
+                    elements.append(Spacer(1, 10 * mm))
+
+                    rows = []
+            except Exception as e:
+                print(f"プロフィールカード作成エラー: {e}")
+                # エラーの場合はその会員をスキップ
+                continue
+
+        # 残りのアイテムを処理
+        if current_row:
+            # 2列になるまで空のセルで埋める
+            while len(current_row) < 2:  # 2列に変更
+                current_row.append("")
+            rows.append(current_row)
+
+        if rows:
+            # 最後の行も固定高さを設定
+            row_heights = [fixed_card_height] * len(rows)
+
+            profile_table = Table(rows, colWidths=[fixed_card_width] * 2, rowHeights=row_heights)  # 2列に変更
+            profile_table.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('TOPPADDING', (0, 0), (-1, -1), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ]))
+
+            elements.append(profile_table)
+
+        try:
+            # PDFを保存
+            doc.build(elements)
+        finally:
+            # 一時ファイルの削除
+            for tmp_file in temp_files:
+                try:
+                    if os.path.exists(tmp_file):
+                        os.unlink(tmp_file)
+                except Exception as e:
+                    print(f"一時ファイル削除エラー: {e}")
+
+    def create_fixed_size_profile_card(self, item, style, card_width, card_height):
+        """一人分の固定サイズプロフィールカードを作成（テキスト開始位置を統一）"""
+        # 固定サイズの枠を作成するため、外側のコンテナを定義
+        # カードの内部コンテンツ用の幅（枠線内側の幅）
+        inner_width = card_width * 0.9
+
+        # 画像エリアの固定高さ（テキスト開始位置を統一するため）
+        fixed_image_area_height = card_height * 0.5  # カード高さの半分を画像エリアに
+
         # プロフィール情報を整理
         texts = []
         texts.append(f"<b>{item['parent_name']}</b>")
@@ -977,14 +995,22 @@ class MemberManagementApp(QMainWindow):
         if item['parent_phrase']:
             texts.append(f"お住まいの地域: {item['parent_phrase']}")
 
-
+        # スタイルに最大幅を設定して、テキストが枠からはみ出さないようにする
+        text_style = ParagraphStyle(
+            'FixedWidthStyle',
+            parent=style,
+            wordWrap='CJK',
+            allowWidows=0,
+            allowOrphans=0
+        )
 
         # 全てのテキストを1つのパラグラフにまとめる
-        content = Paragraph("<br/>".join(texts), style)
+        content = Paragraph("<br/>".join(texts), text_style)
 
         # 画像の処理
         img = None
         temp_file_path = None
+        img_container = None
 
         if item['photo_url'] and item['photo_url'].strip():
             try:
@@ -1003,19 +1029,59 @@ class MemberManagementApp(QMainWindow):
                     pil_image = Image.open(BytesIO(image_data))
                     img_format = pil_image.format
                     img_ext = img_format.lower() if img_format else 'jpg'
+
+                    # 画像のサイズを取得
+                    orig_width, orig_height = pil_image.size
+
+                    # 縦横比を計算
+                    aspect_ratio = orig_width / orig_height
+
+                    # 一時ファイルを閉じる
                     pil_image.close()
                 except Exception as img_err:
                     print(f"画像検証エラー: {img_err}")
                     img_ext = 'jpg'  # デフォルト
+                    aspect_ratio = 1.0  # デフォルト
 
                 # 一時ファイルを作成
                 with tempfile.NamedTemporaryFile(delete=False, suffix=f'.{img_ext}') as temp_file:
                     temp_file.write(image_data)
                     temp_file_path = temp_file.name
 
+                # 画像の最大サイズ（内部幅の70%）
+                max_img_width = inner_width * 0.7
+
+                # 縦横比を維持する高さを計算
+                img_height = max_img_width / aspect_ratio if aspect_ratio > 0 else max_img_width
+
+                # 最大高さも制限（固定画像エリアの80%）
+                max_img_height = fixed_image_area_height * 0.8
+
+                if img_height > max_img_height:
+                    img_height = max_img_height
+                    max_img_width = img_height * aspect_ratio
+
                 # レポートラボの画像オブジェクト作成を試みる
                 try:
-                    img = ReportLabImage(temp_file_path, width=3 * cm, height=3 * cm)
+                    img = ReportLabImage(temp_file_path, width=max_img_width, height=img_height)
+
+                    # 画像を固定高さのコンテナに配置して、位置を中央に
+                    # これにより、画像サイズに関わらずテキスト開始位置を統一
+                    img_container = Table(
+                        [[img]],
+                        colWidths=[inner_width],
+                        rowHeights=[fixed_image_area_height]
+                    )
+
+                    img_container.setStyle(TableStyle([
+                        ('ALIGN', (0, 0), (0, 0), 'CENTER'),  # 水平中央揃え
+                        ('VALIGN', (0, 0), (0, 0), 'MIDDLE'),  # 垂直中央揃え
+                        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                        ('TOPPADDING', (0, 0), (-1, -1), 0),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                    ]))
+
                 except Exception as rl_err:
                     print(f"ReportLab画像読み込みエラー: {rl_err}")
 
@@ -1041,10 +1107,28 @@ class MemberManagementApp(QMainWindow):
                         temp_file_path = new_temp_path
 
                         # 再度ReportLabの画像オブジェクト作成を試みる
-                        img = ReportLabImage(temp_file_path, width=3 * cm, height=3 * cm)
+                        img = ReportLabImage(temp_file_path, width=max_img_width, height=img_height)
+
+                        # 画像を固定高さのコンテナに配置
+                        img_container = Table(
+                            [[img]],
+                            colWidths=[inner_width],
+                            rowHeights=[fixed_image_area_height]
+                        )
+
+                        img_container.setStyle(TableStyle([
+                            ('ALIGN', (0, 0), (0, 0), 'CENTER'),  # 水平中央揃え
+                            ('VALIGN', (0, 0), (0, 0), 'MIDDLE'),  # 垂直中央揃え
+                            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                            ('TOPPADDING', (0, 0), (-1, -1), 0),
+                            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                        ]))
+
                     except Exception as retry_err:
                         print(f"画像変換再試行エラー: {retry_err}")
                         img = None
+                        img_container = None
 
                         # 一時ファイルのクリーンアップ
                         if temp_file_path and os.path.exists(temp_file_path):
@@ -1057,6 +1141,7 @@ class MemberManagementApp(QMainWindow):
             except Exception as e:
                 print(f"プロフィールカード画像処理エラー: {e}")
                 img = None
+                img_container = None
 
                 # 一時ファイルのクリーンアップ
                 if temp_file_path and os.path.exists(temp_file_path):
@@ -1067,42 +1152,76 @@ class MemberManagementApp(QMainWindow):
                     except Exception as cleanup_err:
                         print(f"エラー後のクリーンアップ失敗: {cleanup_err}")
 
-        # プロフィールカードの作成
-        if img:
-            # 画像とテキストを組み合わせる
-            profile_table = Table([
-                [img],
-                [content]
-            ], colWidths=[5.5 * cm])
+        # 画像がない場合、空の固定高さコンテナを作成
+        if img_container is None:
+            img_container = Table(
+                [[""]],  # 空のコンテンツ
+                colWidths=[inner_width],
+                rowHeights=[fixed_image_area_height]
+            )
 
-            profile_table.setStyle(TableStyle([
-                ('VALIGN', (0, 0), (0, 0), 'TOP'),
+            img_container.setStyle(TableStyle([
                 ('ALIGN', (0, 0), (0, 0), 'CENTER'),
-                ('VALIGN', (0, 1), (0, 1), 'TOP'),
-                ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('TOPPADDING', (0, 0), (-1, -1), 5),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-                ('LEFTPADDING', (0, 0), (-1, -1), 5),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+                ('VALIGN', (0, 0), (0, 0), 'MIDDLE'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
             ]))
 
-            return profile_table, temp_file_path
-        else:
-            # 画像なしのテキストのみ
-            profile_table = Table([
-                [content]
-            ], colWidths=[5.5 * cm])
+        # テキストコンテナ（テキスト部分の高さも固定）
+        text_container = Table(
+            [[content]],
+            colWidths=[inner_width],
+            rowHeights=[card_height - fixed_image_area_height - 10 * mm]  # 残りの高さからマージンを引く
+        )
 
-            profile_table.setStyle(TableStyle([
-                ('VALIGN', (0, 0), (0, 0), 'TOP'),
-                ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('TOPPADDING', (0, 0), (-1, -1), 5),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-                ('LEFTPADDING', (0, 0), (-1, -1), 5),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-            ]))
+        text_container.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),  # テキストは左揃え
+            ('VALIGN', (0, 0), (0, 0), 'TOP'),  # 上揃え
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
 
-            return profile_table, None
+        # 画像エリアとテキストエリアを組み合わせた内部コンテンツ
+        content_table = Table(
+            [
+                [img_container],
+                [text_container]
+            ],
+            colWidths=[inner_width]
+        )
+
+        content_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
+
+        # 固定サイズのフレーム内に内部コンテンツを配置
+        outer_table = Table(
+            [[content_table]],
+            colWidths=[card_width],
+            rowHeights=[card_height]
+        )
+
+        # 外側のテーブルにスタイルを適用
+        outer_table.setStyle(TableStyle([
+            ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),  # 外枠線
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ]))
+
+        return outer_table, temp_file_path
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
