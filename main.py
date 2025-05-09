@@ -132,7 +132,6 @@ class MemberManagementApp(QMainWindow):
             print(f"フォント初期化エラー: {e}")
             self.statusBar().showMessage(f"フォント初期化エラー: {e}")
 
-
     def check_font_before_pdf_export(self):
         """PDF出力前にフォント設定をチェックし、必要に応じてフォント選択ダイアログを表示"""
         # 登録済みのフォント名を確認
@@ -511,7 +510,6 @@ class MemberManagementApp(QMainWindow):
             # テーブル更新
             self.update_table()
 
-
     def update_table(self):
         self.table.setRowCount(0)  # テーブルをクリア
 
@@ -578,7 +576,7 @@ class MemberManagementApp(QMainWindow):
         # 詳細情報を追加
         self.details_layout.addWidget(QLabel("<b>基本情報</b>"), 0, 0)
         self.details_layout.addWidget(QLabel(f"<b>お子様の名前:</b> {item['child_name']}"), 1, 0)
-        self.details_layout.addWidget(QLabel(f"<b>高等部二年生保護者の皆様へご挨拶:</b> {item['child_phrase']}"), 2, 0)
+        self.details_layout.addWidget(QLabel(f"<b>ご挨拶:</b> {item['child_phrase']}"), 2, 0)
         self.details_layout.addWidget(QLabel(f"<b>お住まいの地域:</b> {item['parent_phrase']}"), 3, 0)
 
         # 追加情報がある場合のみ表示（エラー防止）
@@ -718,7 +716,6 @@ class MemberManagementApp(QMainWindow):
                         os.unlink(tmp_file)
                 except Exception as e:
                     print(f"一時ファイル削除エラー: {e}")
-
 
     def convert_google_drive_url(self, url):
         """GoogleドライブのURLを直接アクセス可能なURLに変換する（最新版）"""
@@ -976,7 +973,7 @@ class MemberManagementApp(QMainWindow):
         texts.append(f"<b>{item['parent_name']}</b>")
         texts.append(f"お子様: {item['child_name']}")
         if item['child_phrase']:
-            texts.append(f"高等部二年生保護者の皆様へご挨拶: {item['child_phrase']}")
+            texts.append(f"ご挨拶: {item['child_phrase']}")
         if item['parent_phrase']:
             texts.append(f"お住まいの地域: {item['parent_phrase']}")
 
