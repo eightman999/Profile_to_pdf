@@ -848,17 +848,16 @@ class MemberManagementApp(QMainWindow):
             self.statusBar().showMessage(f"画像読み込みエラー: {url}")
             return QPixmap()  # 空の QPixmap を返す
 
-
     def generate_profile_pdf(self, output_file, grade, items):
         """プロフィール形式のPDFを生成する（日本語フォント対応、A4ページを2列×2行に分割）"""
-        # PDF作成準備
+        # PDF作成準備（余白を少なく設定）
         doc = SimpleDocTemplate(
             output_file,
             pagesize=A4,
-            leftMargin=15 * mm,
-            rightMargin=15 * mm,
-            topMargin=15 * mm,
-            bottomMargin=15 * mm
+            leftMargin=5 * mm,    # 余白を5mmに縮小
+            rightMargin=5 * mm,   # 余白を5mmに縮小
+            topMargin=5 * mm,     # 余白を5mmに縮小
+            bottomMargin=5 * mm   # 余白を5mmに縮小
         )
 
         # スタイル定義
@@ -872,7 +871,7 @@ class MemberManagementApp(QMainWindow):
             'JapaneseStyle',
             parent=styles['Normal'],
             fontName=font_name,
-            fontSize=9,
+            fontSize=10,
             leading=12,
             wordWrap='CJK'
         )
@@ -889,15 +888,15 @@ class MemberManagementApp(QMainWindow):
         # 内容作成
         elements = []
 
-        # タイトル
+        # タイトル（余白を小さく）
         title = Paragraph(f"{grade} プロフィール一覧", japanese_heading)
         elements.append(title)
-        elements.append(Spacer(1, 10 * mm))
+        elements.append(Spacer(1, 5 * mm))  # タイトル下のスペースも縮小
 
         # A4ページを2列×2行に分割するレイアウト
-        # 2列用に固定サイズの枠を定義
-        fixed_card_width = 80 * mm  # 固定幅（2列なので大きくできる）
-        fixed_card_height = 120 * mm  # 固定高さ
+        # 余白が少なくなったので、カードサイズを大きくできる
+        fixed_card_width = 90 * mm  # 固定幅を拡大
+        fixed_card_height = 135 * mm  # 固定高さを拡大
 
         # テーブルレイアウト用の配列
         rows = []
@@ -905,6 +904,9 @@ class MemberManagementApp(QMainWindow):
 
         # 一時ファイルのリスト（後で削除するため）
         temp_files = []
+
+        # カード間のスペースを小さく設定
+        card_spacing = 2  # カード間のスペースを2mmに設定（元の5mmから縮小）
 
         # メンバーごとにプロフィールカードを作成
         for i, item in enumerate(items):
@@ -927,8 +929,10 @@ class MemberManagementApp(QMainWindow):
                     profile_table.setStyle(TableStyle([
                         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                        ('TOPPADDING', (0, 0), (-1, -1), 5),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                        ('TOPPADDING', (0, 0), (-1, -1), card_spacing),  # 余白を縮小
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), card_spacing),  # 余白を縮小
+                        ('LEFTPADDING', (0, 0), (-1, -1), card_spacing),  # 余白を縮小
+                        ('RIGHTPADDING', (0, 0), (-1, -1), card_spacing),  # 余白を縮小
                     ]))
 
                     elements.append(profile_table)
@@ -936,7 +940,7 @@ class MemberManagementApp(QMainWindow):
 
                     # ページを分ける
                     elements.append(Paragraph("", styles['Normal']))
-                    elements.append(Spacer(1, 10 * mm))
+                    elements.append(Spacer(1, 5 * mm))  # ページ間のスペースも縮小
 
                     rows = []
             except Exception as e:
@@ -959,8 +963,10 @@ class MemberManagementApp(QMainWindow):
             profile_table.setStyle(TableStyle([
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('TOPPADDING', (0, 0), (-1, -1), 5),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                ('TOPPADDING', (0, 0), (-1, -1), card_spacing),  # 余白を縮小
+                ('BOTTOMPADDING', (0, 0), (-1, -1), card_spacing),  # 余白を縮小
+                ('LEFTPADDING', (0, 0), (-1, -1), card_spacing),  # 余白を縮小
+                ('RIGHTPADDING', (0, 0), (-1, -1), card_spacing),  # 余白を縮小
             ]))
 
             elements.append(profile_table)
@@ -981,18 +987,21 @@ class MemberManagementApp(QMainWindow):
         """一人分の固定サイズプロフィールカードを作成（テキスト開始位置を統一）"""
         # 固定サイズの枠を作成するため、外側のコンテナを定義
         # カードの内部コンテンツ用の幅（枠線内側の幅）
-        inner_width = card_width * 0.9
+        inner_width = card_width * 0.95  # 内部幅の比率を拡大（余白を少なく）
 
         # 画像エリアの固定高さ（テキスト開始位置を統一するため）
         fixed_image_area_height = card_height * 0.5  # カード高さの半分を画像エリアに
 
         # プロフィール情報を整理
         texts = []
-        texts.append(f"<b>{item['parent_name']}</b>")
+        texts.append(f"お名前: {item['parent_name']}")
         texts.append(f"お子様: {item['child_name']}")
         if item['child_phrase']:
-            texts.append(f"ご挨拶: {item['child_phrase']}")
+            texts.append("")
+            texts.append(f"ご挨拶: ")
+            texts.append(f"{item['child_phrase']}")
         if item['parent_phrase']:
+            texts.append("")
             texts.append(f"お住まいの地域: {item['parent_phrase']}")
 
         # スタイルに最大幅を設定して、テキストが枠からはみ出さないようにする
@@ -1048,14 +1057,14 @@ class MemberManagementApp(QMainWindow):
                     temp_file.write(image_data)
                     temp_file_path = temp_file.name
 
-                # 画像の最大サイズ（内部幅の70%）
-                max_img_width = inner_width * 0.7
+                # 画像の最大サイズ（内部幅の80%）- 余白が少ないので大きく表示
+                max_img_width = inner_width * 0.8
 
                 # 縦横比を維持する高さを計算
                 img_height = max_img_width / aspect_ratio if aspect_ratio > 0 else max_img_width
 
-                # 最大高さも制限（固定画像エリアの80%）
-                max_img_height = fixed_image_area_height * 0.8
+                # 最大高さも制限（固定画像エリアの90%）- 余白が少ないので大きく表示
+                max_img_height = fixed_image_area_height * 0.9
 
                 if img_height > max_img_height:
                     img_height = max_img_height
@@ -1173,7 +1182,7 @@ class MemberManagementApp(QMainWindow):
         text_container = Table(
             [[content]],
             colWidths=[inner_width],
-            rowHeights=[card_height - fixed_image_area_height - 10 * mm]  # 残りの高さからマージンを引く
+            rowHeights=[card_height - fixed_image_area_height - 5 * mm]  # マージンを小さくして高さを拡大
         )
 
         text_container.setStyle(TableStyle([
@@ -1214,13 +1223,14 @@ class MemberManagementApp(QMainWindow):
             ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),  # 外枠線
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 5),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-            ('TOPPADDING', (0, 0), (-1, -1), 5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ('LEFTPADDING', (0, 0), (-1, -1), 3),  # 枠内の余白を小さく
+            ('RIGHTPADDING', (0, 0), (-1, -1), 3),  # 枠内の余白を小さく
+            ('TOPPADDING', (0, 0), (-1, -1), 3),  # 枠内の余白を小さく
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),  # 枠内の余白を小さく
         ]))
 
         return outer_table, temp_file_path
+
 
 
 if __name__ == "__main__":
